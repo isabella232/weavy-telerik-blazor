@@ -29,7 +29,7 @@
                 await wvy.Init();
                 var weavy = await wvy.Weavy(new { jwt = user.FindFirst("jwt").Value, id = "blazor" });
                 var space = await weavy.Space(new { key = "telerik-blazor-ui" });
-                var app1 = await space.App(new { key = "posts", type = "files", container = postsContainer });
+                var app1 = await space.App(new { key = "posts", type = "posts", container = postsContainer });
                 var app2 = await space.App(new { key = "files", type = "files", container = filesContainer });
             }
         }
