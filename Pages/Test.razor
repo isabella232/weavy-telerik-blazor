@@ -1,0 +1,38 @@
+﻿@page "/test"
+
+@using Microsoft.AspNetCore.Components.Authorization
+
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject WeavyJsInterop wvy
+
+<TelerikSplitter Height="100vh">
+    <SplitterPanes>
+        <SplitterPane Size="30%" Collapsible="false" Min="50px">
+            <div @ref="postsContainer" style="height: 100vh;"></div>
+        </SplitterPane>
+        <SplitterPane Min="300px">
+            <div @ref="filesContainer" style="height: 100vh;"></div>
+        </SplitterPane>
+    </SplitterPanes>
+</TelerikSplitter>
+
+@code {
+    ElementReference postsContainer;
+    ElementReference filesContainer;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender) {
+        if (firstRender) {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            if (user.Identity.IsAuthenticated) {
+
+                await wvy.Init();
+                var weavy = await wvy.Weavy(new { jwt = user.FindFirst("jwt").Value, id = "blazor" });
+                var space = await weavy.Space(new { key = "telerik-blazor-ui" });
+                var app1 = await space.App(new { key = "posts", type = "files", container = postsContainer });
+                var app2 = await space.App(new { key = "files", type = "files", container = filesContainer });
+            }
+        }
+    }
+}
+
