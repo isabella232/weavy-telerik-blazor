@@ -1,0 +1,166 @@
+@import url('open-iconic/font/css/open-iconic-bootstrap.min.css');
+
+
+dd, dt {
+    word-break: break-all;
+}
+
+html, body {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+a, .btn-link {
+    color: #0366d6;
+}
+
+.btn-primary {
+    color: #fff;
+    background-color: #1b6ec2;
+    border-color: #1861ac;
+}
+
+.content {
+    padding-top: 1.1rem;
+}
+
+.valid.modified:not([type=checkbox]) {
+    outline: 1px solid #26b050;
+}
+
+.invalid {
+    outline: 1px solid red;
+}
+
+.validation-message {
+    color: red;
+}
+
+#blazor-error-ui {
+    background: lightyellow;
+    bottom: 0;
+    box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
+    display: none;
+    left: 0;
+    padding: 0.6rem 1.25rem 0.7rem 1.25rem;
+    position: fixed;
+    width: 100%;
+    z-index: 1000;
+}
+
+    #blazor-error-ui .dismiss {
+        cursor: pointer;
+        position: absolute;
+        right: 0.75rem;
+        top: 0.5rem;
+    }
+
+/* Chat */
+.k-chat {
+    max-width: unset !important;
+    height: unset !important;
+}
+
+p {
+    display: none !important;
+}
+
+.conversation {
+    position: relative;
+    height: 62px;
+    margin: 0;
+    padding: 0;
+    border-bottom: 1px solid rgba(128,128,128,.3);
+    cursor: pointer;
+}
+
+    .conversation img {
+        width: 40px;
+        height: 40px;
+        border-radius: 40px;
+        margin: 10px;
+        border: 1px solid #000;
+        float: left;
+    }
+
+    .conversation h3 {
+        margin: 0;
+        padding: 15px 5px 1px 0;
+        overflow: hidden;
+        line-height: 1em;
+        font-size: 1.1em;
+        font-weight: normal;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        white-space: nowrap;
+    }
+
+    .conversation.unread h3 {
+        font-weight: bold;
+    }
+
+    .conversation .p {
+        /*font-size: .9em;*/
+        text-overflow: ellipsis;
+        overflow: hidden;
+        white-space: nowrap;
+    }
+
+.k-listview:after {
+    content: ".";
+    display: block;
+    height: 0;
+    clear: both;
+    visibility: hidden;
+}
+
+.k-card > img.k-card-image {
+    height: 134px;
+    display: block;
+}
+
+.quoteCard span {
+    display: block;
+    float: right;
+}
+
+.k-animation-container {
+    z-index: 10003 !important;
+}
+
+.open-create {
+    margin: 0 auto;
+    display: block !important;
+}
+
+.create {
+    margin: .5rem 0 .5rem 0;
+}
+
+.conversations.k-listview {
+    margin-bottom: 1rem;
+    border: 0;
+}
+
+.demo-section {
+    min-height: 100%;
+}
+
+.k-loader.loader-indicator {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    opacity: .5;
+    z-index: 1000;
+    pointer-events: none;
+}
+
+.k-loader-canvas {
+    left: 50%;
+}
+
+.p {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    display: block;
+}
+

@@ -1,0 +1,42 @@
+﻿@using System.Security.Claims;
+@model ClaimsPrincipal
+@{
+
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Weavy ❤ Telerik Blazor UI</title>
+    <link rel="stylesheet" href="css/bootstrap/bootstrap.min.css" />
+    <link href="css/site.css" rel="stylesheet" />
+</head>
+<body>
+    <div class="container text-center my-5">
+        <h1>Weavy ❤ Telerik Blazor UI</h1>
+        <div class="p">Authenticating @Model.Identity.Name...</div>
+    </div>
+    <script src="~/js/jquery-3.4.1.js"></script>
+    <script>
+    $.ajax("https://showcase.weavycloud.com/client/sign-in", {
+        crossDomain: true,
+        contentType: "application/json",
+        method: "GET",
+        xhrFields: {
+            withCredentials: true
+        },
+        // https://stackoverflow.com/questions/8163703/cross-domain-ajax-doesnt-send-x-requested-with-header
+        headers: {
+            "Authorization": "Bearer @Model.FindFirst("jwt").Value",
+            "X-Requested-With": "XMLHttpRequest"
+        }
+    }).then(function () {
+        document.location = "/";
+    });
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,54 @@
+﻿@page "/profile"
+
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using System.Text.RegularExpressions;
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject WeavyJsInterop wvy
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col">
+            <dl class="my-3">
+                @foreach (var claim in user.Claims) {
+                    <dt>@claim.Type</dt>
+                    <dd>@Ellipsis(claim.Value, 38)</dd>
+                }
+            </dl>
+        </div>
+        <div class="col">
+            <div @ref="filesContainer" style="height: 100vh;"></div>
+        </div>
+    </div>
+</div>
+
+@code {
+    ClaimsPrincipal user;
+    ElementReference filesContainer;
+
+    protected override async Task OnInitializedAsync() {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        user = authState.User;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender) {
+        if (firstRender) {
+            await wvy.Init();
+            var weavy = await wvy.Weavy(new { jwt = user.FindFirst("jwt").Value, id = "blazor" });
+            var space = await weavy.Space(new { key = "telerik-blazor-ui-" + user.Identity.Name });
+            var app = await space.App(new { key = "files", name = user.Identity.Name + "'s files", type = "files", container = filesContainer });
+        }
+    }
+
+
+    private string Ellipsis(string input, int length) {
+        if (string.IsNullOrEmpty(input)) {
+            return string.Empty;
+        } else if (input.Length > length) {
+            return Regex.Replace(input.Substring(0, length - 1), @"\W+$", "") + '…';
+        } else {
+            return input;
+        }
+    }
+}
+

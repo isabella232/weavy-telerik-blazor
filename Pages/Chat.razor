@@ -1,0 +1,244 @@
+﻿@page "/chat"
+
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using System.Text.Json;
+
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IJSRuntime JS
+@inject NavigationManager NavigationManager
+@inject ChatService ChatService
+
+<TelerikSplitter Height="100vh">
+    <SplitterPanes>
+        <SplitterPane Size="30%" Collapsible="false" Min="50px">
+            <TelerikLoader Class="loader-indicator" ThemeColor="primary" Visible="@isConversationsLoading" Type="LoaderType.InfiniteSpinner" Size="LoaderSize.Large"></TelerikLoader>
+            <TelerikListView Data="@conversations" Class="conversations">
+                <Template>
+                    <div class="listview-item conversation @( context.selected ? "k-state-selected" : "" )" @onclick="@(_ => LoadConversation(context.id))">
+                        <img src="@context.thumb.AsAbsoluteUrl()" alt="">
+                        <h3>@context.title</h3>
+                        <div class="p">@context.last_message?.html</div>
+                    </div>
+                </Template>
+            </TelerikListView>
+            @if (users != null) {
+                <TelerikButton OnClick="@(_ => addConversationModalVisible = true)" Primary="true" ButtonType="ButtonType.Button" Class="open-create">New Conversation...</TelerikButton>}
+        </SplitterPane>
+        <SplitterPane Min="300px">
+            <TelerikLoader Class="loader-indicator" ThemeColor="primary" Visible="@isMessagesLoading" Type="LoaderType.InfiniteSpinner" Size="LoaderSize.Large"></TelerikLoader>
+            @if (messageMarkup.Value != null) {
+                <div class="demo-section k-content k-widget k-chat" id="chat" data-role="chat">
+                    <div class="k-message-list k-avatars" data-role="chat" aria-live="polite">
+                        <div class="k-message-list-content">
+                            @messageMarkup
+                        </div>
+                    </div>
+                    <div class="k-message-box" data-role="chat">
+                        <input type="text" class="k-input" @bind="messageContent" placeholder="Type a message...">
+                        <TelerikButton @onclick="@(_ => InsertMessage())" Title="Send message" Class="k-flat k-button-icon k-button-send">
+                            <svg version="1.1" ixmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 16 16" xml:space="preserve"><path d="M0,14.3c-0.1,0.6,0.3,0.8,0.8,0.6l14.8-6.5c0.5-0.2,0.5-0.6,0-0.8L0.8,1.1C0.3,0.9-0.1,1.1,0,1.7l0.7,4.2C0.8,6.5,1.4,7,1.9,7.1l8.8,0.8c0.6,0.1,0.6,0.1,0,0.2L1.9,8.9C1.4,9,0.8,9.5,0.7,10.1L0,14.3z"></path></svg>
+                        </TelerikButton>
+                    </div>
+                </div>}
+        </SplitterPane>
+    </SplitterPanes>
+</TelerikSplitter>
+
+@if (users != null) {
+    <TelerikWindow Size="@WindowSize.Small" Centered="true" @bind-Visible="addConversationModalVisible" Width="400px" Modal="true">
+        <WindowTitle>
+            <strong>Add Conversation</strong>
+        </WindowTitle>
+        <WindowActions>
+            <WindowAction Name="Close" />
+        </WindowActions>
+        <WindowContent>
+            <TelerikMultiSelect Data="@users.data" TextField="title" TItem="User" TValue="int" ValueField="id" @bind-Value="@selectedMembers" AutoClose="false" Placeholder="Select Conversation Members" Width="100%"></TelerikMultiSelect>
+            <TelerikButton OnClick="@(_ => CreateConversation())" Primary="true" ButtonType="ButtonType.Button" Class="create">Create</TelerikButton>
+        </WindowContent>
+    </TelerikWindow>}
+
+@code { // component state
+    private ClaimsPrincipal user;
+
+    private IEnumerable<Conversation> conversations;
+    private PagedList<Message> messages;
+    private PagedList<User> users;
+    private List<int> selectedMembers;
+
+    private MarkupString messageMarkup;
+    private int? activeConversation;
+    private string messageContent;
+    private bool addConversationModalVisible;
+    private bool isMessagesLoading = false;
+    private bool isConversationsLoading = true;
+
+    private static Action<string, string> eventCallback;
+
+
+    // called from js when we receive an event via the weavy rtm hub
+    [JSInvokable]
+    public static void EventReceived(string name, string data) {
+        // trigger component action that updates component state as needed
+        eventCallback.Invoke(name, data);
+    }
+
+    // event handler for weavy realtime events
+    private async void HandleEvent(string name, string data) {
+        // TODO: update component state and call StateHasChanged to re-render when applicable
+        switch (name) {
+            case "presence-update.weavy":
+                var presence = JsonSerializer.Deserialize<PresenceEvent>(data);
+                Console.WriteLine(presence);
+                break;
+            case "typing.weavy":
+                var typing = JsonSerializer.Deserialize<TypingEvent>(data);
+                Console.WriteLine(typing);
+                break;
+            case "message-inserted.weavy":
+                var message = JsonSerializer.Deserialize<Message>(data);
+                Console.WriteLine(message);
+                if (message.conversation == activeConversation) {
+                    await LoadConversation(message.conversation);
+                    StateHasChanged();
+                }
+                break;
+            default:
+                break;
+        }
+    }
+
+    // invoked when the component is initialized after having received its initial parameters
+    protected override async Task OnInitializedAsync() {
+        eventCallback = HandleEvent;
+
+        // grab current user
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        user = authState.User;
+
+        // load the users conversations and init components via binding
+        if (user.Identity.IsAuthenticated) {
+            conversations = await ChatService.GetConversationsAsync();
+            users = await ChatService.GetChatUsersAsync();
+        }
+
+        // remove loading indicator
+        isConversationsLoading = false;
+    }
+
+    // called after a component has finished rendering
+    protected override async Task OnAfterRenderAsync(bool firstRender) {
+        if (firstRender && user.Identity.IsAuthenticated) {
+            // connect to weavy for listening to realtime events
+            await JS.InvokeVoidAsync("wvy.interop.connect");
+        }
+    }
+
+    // loads messages from a conversation and updates the UI
+    protected async Task LoadConversation(int conversationId) {
+        isMessagesLoading = true;
+        activeConversation = conversationId;
+
+        // make sure the correct css class is used in the listview
+        conversations = conversations.Select(x => { x.selected = x.id == activeConversation ? true : false; return x; }).ToArray();
+
+        // get messages in conversation
+        messages = await ChatService.GetMessagesAsync(conversationId);
+
+        if (messages != null && messages.data != null) {
+            // some grouping of messages to get the markup we need
+            messageMarkup = new MarkupString(GetMarkup(messages.data.ToArray()));
+        } else {
+            messageMarkup = new MarkupString("");
+        }
+
+        // remove loading indicator
+        isMessagesLoading = false;
+    }
+
+    // create a new conversation with one or more members
+    protected async Task CreateConversation() {
+        if (selectedMembers.Any()) {
+            
+            // call api to create the conversation
+            var newConversation = await ChatService.CreateConversationAsync(selectedMembers);
+            
+            // reset ui
+            selectedMembers.Clear();
+            addConversationModalVisible = false;
+            StateHasChanged();
+            
+            // update ui
+            conversations = await ChatService.GetConversationsAsync();
+            await LoadConversation(newConversation.id);
+        }
+    }
+
+    // inserts a new message in the active conversation
+    protected async Task InsertMessage() {
+        if (activeConversation != null) {
+            
+            // call api to create the new message
+            await ChatService.PostMessageAsync(activeConversation.Value, messageContent);
+            
+            // update ui
+            await LoadConversation(activeConversation.Value);
+            
+            // reset message content
+            messageContent = "";
+        }
+    }
+
+    // gets the markup we need to display the messages
+    protected string GetMarkup(Message[] messages) {
+
+        var sb = new System.Text.StringBuilder();
+        var length = messages.Count();
+
+        var messageGroup = new List<Message>();
+
+        int? lastCreatedBy = null;
+
+        for (var i = 0; i < length; i++) {
+
+            if (lastCreatedBy == null || lastCreatedBy.Value == messages[i].created_by.id) {
+                messageGroup.Add(messages[i]);
+            } else {
+                sb.Append(RenderMessageGroup(messageGroup, messageGroup[0].created_by.username == user.Identity.Name));
+                messageGroup = new List<Message>();
+                messageGroup.Add(messages[i]);
+            }
+
+            lastCreatedBy = messages[i].created_by.id;
+
+            if (i == length - 1) {
+                sb.Append(RenderMessageGroup(messageGroup, messageGroup[0].created_by.username == user.Identity.Name));
+            }
+        }
+        return sb.ToString();
+    }
+
+    // gets the markup for a group of messages from the same user
+    private string RenderMessageGroup(List<Message> messageGroup, bool isMe) {
+        var sb = new System.Text.StringBuilder();
+
+        sb.AppendLine(@$"<div class=""k-message-group {(isMe ? "k-alt" : null)}"">");
+
+        if (!isMe) {
+            sb.AppendLine($@"<div class=""p k-author"">{messageGroup[0].created_by.title}</div>");
+        }
+        sb.AppendLine(@$"<img src=""{messageGroup[0].created_by.thumb.AsAbsoluteUrl()}"" alt=""{messageGroup[0].created_by.title}"" class=""k-avatar"">");
+
+        for (int i = 0; i < messageGroup.Count; i++) {
+            var messageClass = "k-middle";
+            if (i == 0 && messageGroup.Count == 1) {
+                messageClass = "k-only";
+            } else if (i == messageGroup.Count - 1) {
+                messageClass = "k-last";
+            }
+            sb.Append(@$"<div class=""k-message {messageClass}""><time class=""k-message-time"">{messageGroup[i].created_at.ToLocalTime()}</time><div class=""k-bubble"">{messageGroup[i].html}</div></div>");
+        }
+        sb.Append("</div>");
+        return sb.ToString();
+    } }

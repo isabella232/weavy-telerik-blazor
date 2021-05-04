@@ -1,0 +1,44 @@
+﻿@page "/"
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject WeavyJsInterop wvy
+
+<AuthorizeView>
+    <Authorized>
+        <div class="container-fluid">
+            <div @ref="postsContainer" style="height: 100vh;"></div>
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <div class="container text-center my-5">
+            <h1>Weavy ❤ Telerik Blazor UI</h1>
+            <div class="mb-3">Please click one of the buttons below to login.</div>
+            <NavLink class="btn btn-primary" href="login?username=oliver">Oliver</NavLink>
+            <NavLink class="btn btn-success" href="login?username=lilly">Lilly</NavLink>
+            <NavLink class="btn btn-info" href="login?username=adam">Adam</NavLink>
+            <NavLink class="btn btn-warning" href="login?username=samara">Samara</NavLink>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
+
+
+@code {
+    
+    ElementReference postsContainer;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender) {
+
+        if (firstRender) {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            
+            if (user != null && user.Identity.IsAuthenticated) {
+                await wvy.Init();
+                var weavy = await wvy.Weavy(new { jwt = user.FindFirst("jwt").Value, id = "blazor" });
+                var space = await weavy.Space(new { key = "telerik-blazor-ui" });
+                var app = await space.App(new { key = "posts", type = "posts", container = postsContainer });
+            }
+        }
+    }
+}
