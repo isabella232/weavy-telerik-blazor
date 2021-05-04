@@ -136,6 +136,12 @@ namespace WeavyTelerikBlazor.Models {
         public string presence { get; set; }
     }
 
+    public class Badge {
+        public int conversations { get; set; }
+        public int notifications { get; set; }
+        public int total { get; set; }
+    }
+
     public static class Helpers {
         public static string AsAbsoluteUrl(this string url) {            
             return Startup.StaticConfig.GetSection("Weavy")["Url"] + url;

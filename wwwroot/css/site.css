@@ -87,7 +87,7 @@ p {
         padding: 15px 5px 1px 0;
         overflow: hidden;
         line-height: 1em;
-        font-size: 1.1em;
+        font-size: 1em;
         font-weight: normal;
         text-overflow: ellipsis;
         overflow: hidden;
@@ -99,7 +99,7 @@ p {
     }
 
     .conversation .p {
-        /*font-size: .9em;*/
+        font-size: .875rem;
         text-overflow: ellipsis;
         overflow: hidden;
         white-space: nowrap;

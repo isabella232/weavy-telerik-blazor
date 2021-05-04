@@ -1,4 +1,6 @@
-﻿<div class="top-row pl-4 navbar navbar-dark">
+﻿@inject ChatService ChatService
+
+<div class="top-row pl-4 navbar navbar-dark">
     <a class="navbar-brand" href="">Weavy ❤ Telerik Blazor</a>
     <button class="navbar-toggler" @onclick="ToggleNavMenu">
         <span class="navbar-toggler-icon"></span>
@@ -29,6 +31,11 @@
             </NavLink>
         </li>
         <li class="nav-item px-3">
+            <NavLink class="nav-link" href="notifications">
+                <span class="oi oi-bell" aria-hidden="true"></span> Notifications <span class="badge bg-danger ml-2">@badge?.notifications</span>
+            </NavLink>
+        </li>
+        <li class="nav-item px-3">
             <NavLink class="nav-link" href="logout">
                 <span class="oi oi-account-logout" aria-hidden="true"></span> Logout
             </NavLink>
@@ -38,6 +45,12 @@
 
 @code {
     private bool collapseNavMenu = true;
+    private Badge badge;
+
+    // invoked when the component is initialized after having received its initial parameters
+    protected override async Task OnInitializedAsync() {
+        badge = await ChatService.GetBadgeAsync();
+    }
 
     private string NavMenuCssClass => collapseNavMenu ? "collapse" : null;
 

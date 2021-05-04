@@ -28,6 +28,14 @@ namespace WeavyTelerikBlazor.Data {
         }
 
         /// <summary>
+        /// Calls Weavy and returns the notification badge for the current user.
+        /// </summary>
+        /// <returns></returns>
+        public async Task<Badge> GetBadgeAsync() {
+            return await CallApiAsync<Badge>(HttpMethod.Get, "a/notifications/badges");
+        }
+
+        /// <summary>
         /// Calls Weavy and returns the conversations for the current user.
         /// </summary>
         /// <returns></returns>

@@ -1,0 +1,27 @@
+﻿@page "/notifications"
+
+@using Microsoft.AspNetCore.Components.Authorization
+
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject WeavyJsInterop wvy
+
+<div @ref="appContainer" style="height: 100vh;"></div>
+
+@code {
+    ElementReference appContainer;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender) {
+        if (firstRender) {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            if (user.Identity.IsAuthenticated) {
+
+                await wvy.Init();
+                var weavy = await wvy.Weavy(new { jwt = user.FindFirst("jwt").Value, id = "blazor" });
+                var space = await weavy.Space(new { key = "telerik-blazor-ui" });
+                var app = await space.App(new { key = "notifications", type = "notifications", container = appContainer });
+            }
+        }
+    }
+}
+

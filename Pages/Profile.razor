@@ -6,21 +6,23 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject WeavyJsInterop wvy
 
-<div class="container-fluid">
-    <div class="row">
-        <div class="col">
-            <dl class="my-3">
+<TelerikSplitter Height="100vh">
+    <SplitterPanes>
+        <SplitterPane Collapsible="false" Size="50%">
+            <dl class="m-3">
                 @foreach (var claim in user.Claims) {
                     <dt>@claim.Type</dt>
                     <dd>@Ellipsis(claim.Value, 38)</dd>
                 }
             </dl>
-        </div>
-        <div class="col">
+        </SplitterPane>
+        <SplitterPane>
             <div @ref="filesContainer" style="height: 100vh;"></div>
-        </div>
-    </div>
-</div>
+        </SplitterPane>
+    </SplitterPanes>
+</TelerikSplitter>
+
+
 
 @code {
     ClaimsPrincipal user;
@@ -34,7 +36,7 @@
     protected override async Task OnAfterRenderAsync(bool firstRender) {
         if (firstRender) {
             await wvy.Init();
-            var weavy = await wvy.Weavy(new { jwt = user.FindFirst("jwt").Value, id = "blazor" });
+            var weavy = await wvy.Weavy(new { jwt = user.FindFirst("jwt").Value });
             var space = await weavy.Space(new { key = "telerik-blazor-ui-" + user.Identity.Name });
             var app = await space.App(new { key = "files", name = user.Identity.Name + "'s files", type = "files", container = filesContainer });
         }
