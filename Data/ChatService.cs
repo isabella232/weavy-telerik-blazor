@@ -45,11 +45,13 @@ namespace WeavyTelerikBlazor.Data {
 
 
         /// <summary>
-        /// Calls Weavy and returns the messages that belongs to the conversation with the specified id.
+        /// Calls Weavy and returns the messages that belongs to the conversation with the specified id, also marks the conversation as read.
         /// </summary>
         /// <param name="conversationId">The id of the conversation to get messages for.</param>
         /// <returns></returns>
         public async Task<PagedList<Message>> GetMessagesAsync(int conversationId) {
+            // first call api and mark conversation as read
+            await CallApiAsync<Conversation>(HttpMethod.Post, $"api/conversations/{conversationId}/read");
             return await CallApiAsync<PagedList<Message>>(HttpMethod.Get, $"api/conversations/{conversationId}/messages");
         }
 

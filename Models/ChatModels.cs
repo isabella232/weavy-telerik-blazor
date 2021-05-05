@@ -27,8 +27,8 @@ namespace WeavyTelerikBlazor.Models {
             }
         }
 
-        public DateTime delivered_at { get; set; }
-        public DateTime read_at { get; set; }
+        public DateTime? delivered_at { get; set; }
+        public DateTime? read_at { get; set; }
         public bool is_read { get; set; }
         public bool is_pinned { get; set; }
         public Message last_message { get; set; }
@@ -131,8 +131,8 @@ namespace WeavyTelerikBlazor.Models {
         }
 
         public string url { get; set; }
-        public DateTime delivered_at { get; set; }
-        public DateTime read_at { get; set; }
+        public DateTime? delivered_at { get; set; }
+        public DateTime? read_at { get; set; }
         public string presence { get; set; }
     }
 
