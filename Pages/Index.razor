@@ -3,12 +3,37 @@
 @using System.Security.Claims
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject WeavyJsInterop wvy
+@using Telerik.Blazor
 
 <AuthorizeView>
     <Authorized>
-        <Weavy>
-            <WeavyApp SpaceKey="telerik-blazor-ui" Height="100vh" key="posts" type="posts" />
-        </Weavy>
+        <center>
+            <h1>Welcome @Username</h1>
+            <h2>Our latest poll</h2>
+        </center>
+        <TelerikChart>
+            <ChartTitle Text="What is you favourite sport?"></ChartTitle>
+            <ChartLegend Visible="true" Position="ChartLegendPosition.Top"></ChartLegend>
+
+            <ChartSeriesItems>
+                <ChartSeries Type="ChartSeriesType.Donut"
+                            Data="@Data"
+                            Field="@nameof(ModelData.Value)"
+                            CategoryField="@nameof(ModelData.Category)">
+                    <ChartSeriesTooltip Visible="true" Context="item">
+                        <Template>
+                            @item.Percentage.ToString("P")
+                        </Template>
+                    </ChartSeriesTooltip>
+                    <ChartSeriesLabels Position="ChartSeriesLabelsPosition.OutsideEnd"
+                                    Visible="true"
+                                    Background="transparent"
+                                    Template="#= dataItem.Category # - #= percentage*100 #%">
+                    </ChartSeriesLabels>
+                </ChartSeries>
+            </ChartSeriesItems>
+
+        </TelerikChart>
     </Authorized>
     <NotAuthorized>
         <div class="container text-center my-5">
@@ -22,3 +47,51 @@
     </NotAuthorized>
 </AuthorizeView>
 
+@code {
+
+    string Username = String.Empty;
+    ClaimsPrincipal user;
+
+    protected override async Task OnInitializedAsync() {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        user = authState.User;
+        Username = user.Identity.Name;
+    }
+
+    
+    public class ModelData
+    {
+        public string Category { get; set; }
+        public Int32 Value { get; set; }
+    }
+
+    public List<ModelData> Data = new List<ModelData>()
+    {
+        new ModelData()
+        {
+            Category = "Football",
+            Value = 35
+        },
+        new ModelData()
+        {
+            Category = "Basketball",
+            Value = 25
+        },
+        new ModelData()
+        {
+            Category = "Volleyball",
+            Value = 20
+        },
+        new ModelData()
+        {
+            Category = "Rugby",
+            Value = 10
+        },
+        new ModelData()
+        {
+            Category = "Tennis",
+            Value = 10
+        },
+
+    };
+}
