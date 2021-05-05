@@ -3,7 +3,7 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
 @using System.Text.Json;
-
+@implements IDisposable
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IJSRuntime JS
 @inject NavigationManager NavigationManager
@@ -74,46 +74,8 @@
     private bool isMessagesLoading = false;
     private bool isConversationsLoading = true;
 
-    private static Action<string, string> eventCallback;
-
-    // called from js when we receive an event via the weavy rtm hub
-    [JSInvokable]
-    public static void EventReceived(string name, string data) {
-        // trigger component action that updates component state as needed
-        eventCallback?.Invoke(name, data);
-    }
-
-    // event handler for weavy realtime events
-    private async void HandleEvent(string name, string data) {
-        // update component state and call StateHasChanged to re-render when applicable
-        switch (name) {
-            case "presence-update.weavy":
-                var presence = JsonSerializer.Deserialize<PresenceEvent>(data);
-                Console.WriteLine(presence);
-                break;
-            case "typing.weavy":
-                var typing = JsonSerializer.Deserialize<TypingEvent>(data);
-                Console.WriteLine(typing);
-                break;
-            case "message-inserted.weavy":
-                var message = JsonSerializer.Deserialize<Message>(data);
-                Console.WriteLine(message);
-                if (message.conversation == activeConversation) {
-                    await LoadConversation(message.conversation);
-                } else {
-                    conversations = await ChatService.GetConversationsAsync();
-                }
-                StateHasChanged();
-                break;
-            default:
-                break;
-        }
-    }
-
     // invoked when the component is initialized after having received its initial parameters
     protected override async Task OnInitializedAsync() {
-        eventCallback = HandleEvent;
-
         // grab current user
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         user = authState.User;
@@ -133,8 +95,35 @@
         if (firstRender && user.Identity.IsAuthenticated) {
             // connect to weavy for listening to realtime events
             await JS.InvokeVoidAsync("wvy.interop.connect");
+
+            // add event handler for realtime event
+            Realtime.OnMessage += HandleMessage;
+            Realtime.OnTyping += HandleTyping;
         }
     }
+
+    public void Dispose() {
+        // remove event handlers
+        Realtime.OnMessage -= HandleMessage;
+        Realtime.OnTyping -= HandleTyping;
+    }
+
+    // event handler for new message events
+    async void HandleMessage(object sender, MessageEventArgs e) {
+        Console.WriteLine($"Chat received message event");
+        if (e.Data.conversation == activeConversation) {
+            await LoadConversation(e.Data.conversation);
+        } else {
+            conversations = await ChatService.GetConversationsAsync();
+        }
+        StateHasChanged();
+    }
+
+    // event handler for typing events
+    void HandleTyping(object sender, TypingEventArgs e) {
+        Console.WriteLine("@" + e.Data.user.username + " is typing in conversation " + e.Data.conversation);
+    }
+
 
     // loads messages from a conversation and updates the UI
     protected async Task LoadConversation(int conversationId) {

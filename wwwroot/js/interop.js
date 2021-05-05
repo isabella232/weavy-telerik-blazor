@@ -17,14 +17,8 @@ wvy.interop = (function ($) {
         // log incoming event
         console.debug(name, data);
 
-        if (name === "badge.weavy") {
-            // when we receive a badge event on the websocket we invoke a method on our NavMenu component
-            DotNet.invokeMethodAsync('WeavyTelerikBlazor', 'OnBadge', data);
-        } else {
-            // when we receive an event on the websocket we invoke a method on our Chat component
-            DotNet.invokeMethodAsync('WeavyTelerikBlazor', 'EventReceived', name, data);
-        }
-
+        // when we receive a badge event on the websocket we publish it to our subscribers via js interop
+        DotNet.invokeMethodAsync('WeavyTelerikBlazor', 'ReceivedEvent', name, data);
         
     });
 

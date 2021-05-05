@@ -1,6 +1,7 @@
 ﻿@using Microsoft.AspNetCore.Components.Authorization
 @using System.Text.Json;
 @using System.Security.Claims
+@implements IDisposable
 @inject ChatService ChatService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IJSRuntime JS
@@ -52,6 +53,12 @@
     private ClaimsPrincipal user;
     private int? conversations;
     private int? notifications;
+    private bool collapseNavMenu = true;
+    private string NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    private void ToggleNavMenu() {
+        collapseNavMenu = !collapseNavMenu;
+    }
 
     // invoked when the component is initialized after having received its initial parameters
     protected override async Task OnInitializedAsync() {
@@ -59,45 +66,33 @@
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         user = authState.User;
 
-        // hook up event handler for badge events
-        badgeHandler = HandleBadge;
+        // get initial badge data
         var badge = await ChatService.GetBadgeAsync();
         conversations = (badge?.conversations ?? 0) > 0 ? badge.conversations : null;
         notifications = (badge?.notifications ?? 0) > 0 ? badge.notifications : null;
     }
-
 
     // called after a component has finished rendering
     protected override async Task OnAfterRenderAsync(bool firstRender) {
         if (firstRender && user.Identity.IsAuthenticated) {
             // connect to weavy for listening to realtime events
             await JS.InvokeVoidAsync("wvy.interop.connect");
+            // add event handler for badge events
+            Realtime.OnBadge += HandleBadge;
         }
     }
 
-    private bool collapseNavMenu = true;
-
-    private string NavMenuCssClass => collapseNavMenu ? "collapse" : null;
-
-    private void ToggleNavMenu() {
-        collapseNavMenu = !collapseNavMenu;
-    }
-
-    private static Action<Badge> badgeHandler;
-
-    // called from js when we receive a badge event via the weavy rtm hub
-    [JSInvokable]
-    public static void OnBadge(string data) {
-        var badge = JsonSerializer.Deserialize<Badge>(data);
-        badgeHandler?.Invoke(badge);
-    }
-
-    // event handler for badge evengt
-    private async void HandleBadge(Badge badge) {
+    // define event handler for badge event
+    void HandleBadge(object sender, BadgeEventArgs e) {
+        Console.WriteLine($"NavMenu received badge event");
+        var badge = e.Data;
         conversations = (badge?.conversations ?? 0) > 0 ? badge.conversations : null;
         notifications = (badge?.notifications ?? 0) > 0 ? badge.notifications : null;
         StateHasChanged();
-        await Task.CompletedTask;
     }
 
+    public void Dispose() {
+        // remove event handlers
+        Realtime.OnBadge -= HandleBadge;
+    }
 }
