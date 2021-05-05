@@ -28,18 +28,12 @@ namespace WeavyTelerikBlazor.Data {
             }
         }
 
-public async ValueTask<IJSObjectReference> Weavy(object options = null) {
-    await Init();
-    options ??= new Dictionary<string, object>();
-    if (options is Dictionary<string, object> dict) {
-        // get jwt from user claims
-        var jwt = _httpContextAccessor?.HttpContext?.User?.FindFirst("jwt").Value;
-        if (jwt != null) {
-            dict["jwt"] = jwt;
+        public async ValueTask<IJSObjectReference> Weavy(object options = null) {
+            await Init();
+            // get jwt from current user claims
+            var jwt = new { jwt = _httpContextAccessor?.HttpContext?.User?.FindFirst("jwt")?.Value };
+            return await _bridge.InvokeAsync<IJSObjectReference>("weavy", new object[] { jwt, options });
         }
-    }
-    return await _bridge.InvokeAsync<IJSObjectReference>("weavy", new object[] { options });
-}
 
         public void Dispose() {
             _bridge?.DisposeAsync();
