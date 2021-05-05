@@ -15,7 +15,7 @@
             <TelerikLoader Class="loader-indicator" ThemeColor="primary" Visible="@isConversationsLoading" Type="LoaderType.InfiniteSpinner" Size="LoaderSize.Large"></TelerikLoader>
             <TelerikListView Data="@conversations" Class="conversations">
                 <Template>
-                    <div class="listview-item conversation @( context.selected ? "k-state-selected" : "" )" @onclick="@(_ => LoadConversation(context.id))">
+                    <div class="listview-item conversation @( context.selected ? "k-state-selected" : context.is_read ? "" : "unread" )" @onclick="@(_ => LoadConversation(context.id))">
                         <img src="@context.thumb.AsAbsoluteUrl()" alt="">
                         <h3>@context.title</h3>
                         <div class="p">@context.last_message?.html</div>
@@ -101,8 +101,10 @@
                 Console.WriteLine(message);
                 if (message.conversation == activeConversation) {
                     await LoadConversation(message.conversation);
-                    StateHasChanged();
+                } else {
+                    conversations = await ChatService.GetConversationsAsync();
                 }
+                StateHasChanged();
                 break;
             default:
                 break;
@@ -140,8 +142,8 @@
         isMessagesLoading = true;
         activeConversation = conversationId;
 
-        // make sure the correct css class is used in the listview
-        conversations = conversations.Select(x => { x.selected = x.id == activeConversation ? true : false; return x; }).ToArray();
+        // make sure the correct css class gets used in the listview (read / active)
+        conversations = conversations.Select(x => { x.selected = x.id == activeConversation ? true : false; x.is_read = x.id == activeConversation ? true : x.is_read; return x; }).ToArray();
 
         // get messages in conversation
         messages = await ChatService.GetMessagesAsync(conversationId);
@@ -160,15 +162,15 @@
     // create a new conversation with one or more members
     protected async Task CreateConversation() {
         if (selectedMembers.Any()) {
-            
+
             // call api to create the conversation
             var newConversation = await ChatService.CreateConversationAsync(selectedMembers);
-            
+
             // reset ui
             selectedMembers.Clear();
             addConversationModalVisible = false;
             StateHasChanged();
-            
+
             // update ui
             conversations = await ChatService.GetConversationsAsync();
             await LoadConversation(newConversation.id);
@@ -178,13 +180,13 @@
     // inserts a new message in the active conversation
     protected async Task InsertMessage() {
         if (activeConversation != null) {
-            
+
             // call api to create the new message
             await ChatService.PostMessageAsync(activeConversation.Value, messageContent);
-            
+
             // update ui
             await LoadConversation(activeConversation.Value);
-            
+
             // reset message content
             messageContent = "";
         }
@@ -236,7 +238,10 @@
                 messageClass = "k-only";
             } else if (i == messageGroup.Count - 1) {
                 messageClass = "k-last";
+            } else if (i == 0) {
+                messageClass = "k-first";
             }
+
             sb.Append(@$"<div class=""k-message {messageClass}""><time class=""k-message-time"">{messageGroup[i].created_at.ToLocalTime()}</time><div class=""k-bubble"">{messageGroup[i].html}</div></div>");
         }
         sb.Append("</div>");
