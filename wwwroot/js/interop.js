@@ -4,7 +4,7 @@ wvy.interop = (function ($) {
     var weavyConnection = $.hubConnection("https://showcase.weavycloud.com/signalr", { useDefaultPath: false });
 
     // enable additional logging
-    //weavyConnection.logging = true;
+    weavyConnection.logging = true;
 
     // log errors
     weavyConnection.error(function (error) {
@@ -17,8 +17,15 @@ wvy.interop = (function ($) {
         // log incoming event
         console.debug(name, data);
 
-        // when we receive an event on the websocket we invoke a method on our chat component
-        DotNet.invokeMethodAsync('WeavyTelerikBlazor', 'EventReceived', name, data);
+        if (name === "badge.weavy") {
+            // when we receive a badge event on the websocket we invoke a method on our NavMenu component
+            DotNet.invokeMethodAsync('WeavyTelerikBlazor', 'OnBadge', data);
+        } else {
+            // when we receive an event on the websocket we invoke a method on our Chat component
+            DotNet.invokeMethodAsync('WeavyTelerikBlazor', 'EventReceived', name, data);
+        }
+
+        
     });
 
     // connect to weavy realtime hub (only works when we have an auth cookie for the weavy server)

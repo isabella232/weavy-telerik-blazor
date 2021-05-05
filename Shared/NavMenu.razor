@@ -1,4 +1,9 @@
-﻿@inject ChatService ChatService
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@using System.Text.Json;
+@using System.Security.Claims
+@inject ChatService ChatService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IJSRuntime JS
 
 <div class="top-row pl-4 navbar navbar-dark">
     <a class="navbar-brand" href="">Weavy ❤ Telerik Blazor</a>
@@ -44,22 +49,55 @@
 </div>
 
 @code {
-    private bool collapseNavMenu = true;
-
+    private ClaimsPrincipal user;
     private int? conversations;
     private int? notifications;
 
     // invoked when the component is initialized after having received its initial parameters
     protected override async Task OnInitializedAsync() {
+        // grab current user
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        user = authState.User;
+
+        // hook up event handler for badge events
+        badgeHandler = HandleBadge;
         var badge = await ChatService.GetBadgeAsync();
         conversations = (badge?.conversations ?? 0) > 0 ? badge.conversations : null;
         notifications = (badge?.notifications ?? 0) > 0 ? badge.notifications : null;
-
     }
+
+
+    // called after a component has finished rendering
+    protected override async Task OnAfterRenderAsync(bool firstRender) {
+        if (firstRender && user.Identity.IsAuthenticated) {
+            // connect to weavy for listening to realtime events
+            await JS.InvokeVoidAsync("wvy.interop.connect");
+        }
+    }
+
+    private bool collapseNavMenu = true;
 
     private string NavMenuCssClass => collapseNavMenu ? "collapse" : null;
 
     private void ToggleNavMenu() {
         collapseNavMenu = !collapseNavMenu;
     }
+
+    private static Action<Badge> badgeHandler;
+
+    // called from js when we receive a badge event via the weavy rtm hub
+    [JSInvokable]
+    public static void OnBadge(string data) {
+        var badge = JsonSerializer.Deserialize<Badge>(data);
+        badgeHandler?.Invoke(badge);
+    }
+
+    // event handler for badge evengt
+    private async void HandleBadge(Badge badge) {
+        conversations = (badge?.conversations ?? 0) > 0 ? badge.conversations : null;
+        notifications = (badge?.notifications ?? 0) > 0 ? badge.notifications : null;
+        StateHasChanged();
+        await Task.CompletedTask;
+    }
+
 }

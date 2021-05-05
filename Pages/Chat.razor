@@ -76,17 +76,16 @@
 
     private static Action<string, string> eventCallback;
 
-
     // called from js when we receive an event via the weavy rtm hub
     [JSInvokable]
     public static void EventReceived(string name, string data) {
         // trigger component action that updates component state as needed
-        eventCallback.Invoke(name, data);
+        eventCallback?.Invoke(name, data);
     }
 
     // event handler for weavy realtime events
     private async void HandleEvent(string name, string data) {
-        // TODO: update component state and call StateHasChanged to re-render when applicable
+        // update component state and call StateHasChanged to re-render when applicable
         switch (name) {
             case "presence-update.weavy":
                 var presence = JsonSerializer.Deserialize<PresenceEvent>(data);
