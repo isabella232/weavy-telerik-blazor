@@ -6,7 +6,9 @@
 
 <AuthorizeView>
     <Authorized>
-        <div @ref="postsContainer" style="height: 100vh;"></div>
+        <Weavy>
+            <WeavyApp SpaceKey="telerik-blazor-ui" Height="100vh" key="posts" type="posts" />
+        </Weavy>
     </Authorized>
     <NotAuthorized>
         <div class="container text-center my-5">
@@ -20,23 +22,3 @@
     </NotAuthorized>
 </AuthorizeView>
 
-
-@code {
-    
-    ElementReference postsContainer;
-
-    protected override async Task OnAfterRenderAsync(bool firstRender) {
-
-        if (firstRender) {
-            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-            var user = authState.User;
-            
-            if (user != null && user.Identity.IsAuthenticated) {
-                await wvy.Init();
-                var weavy = await wvy.Weavy(new { jwt = user.FindFirst("jwt").Value, id = "blazor" });
-                var space = await weavy.Space(new { key = "telerik-blazor-ui" });
-                var app = await space.App(new { key = "posts", type = "posts", container = postsContainer });
-            }
-        }
-    }
-}

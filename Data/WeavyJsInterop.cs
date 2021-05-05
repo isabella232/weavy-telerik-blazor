@@ -1,61 +1,48 @@
 ﻿using Microsoft.JSInterop;
 using System;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Http;
+using System.Collections.Generic;
 
 namespace WeavyTelerikBlazor.Data {
     public class WeavyJsInterop : IDisposable {
-        private readonly IJSRuntime js;
-        public IJSObjectReference bridge;
+        private bool _initialized = false;
+        private readonly IJSRuntime _js;
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        public IJSObjectReference _bridge;
+        private ValueTask<IJSObjectReference> _whenImport;
 
-        public WeavyJsInterop(IJSRuntime js) {
-            this.js = js;
+
+        public WeavyJsInterop(IJSRuntime js, IHttpContextAccessor httpContextAccessor) {
+            _httpContextAccessor = httpContextAccessor;
+            _js = js;
         }
 
-        async public Task Init() {
-            bridge = await js.InvokeAsync<IJSObjectReference>("import", "./js/weavyJsInterop.js");
+        public async Task Init() {
+            if (!_initialized) {
+                _whenImport = _js.InvokeAsync<IJSObjectReference>("import", "./js/weavyJsInterop.js");
+                _bridge = await _whenImport;
+            } else {
+                await _whenImport;
+            }
         }
 
-        async public ValueTask<WeavyReference> Weavy(object options = null) {
-            var _weavy = await bridge.InvokeAsync<IJSObjectReference>("weavy", new object[] { options });
-            return new WeavyReference(_weavy);
+public async ValueTask<IJSObjectReference> Weavy(object options = null) {
+    await Init();
+    options ??= new Dictionary<string, object>();
+    if (options is Dictionary<string, object> dict) {
+        // get jwt from user claims
+        var jwt = _httpContextAccessor?.HttpContext?.User?.FindFirst("jwt").Value;
+        if (jwt != null) {
+            dict["jwt"] = jwt;
         }
+    }
+    return await _bridge.InvokeAsync<IJSObjectReference>("weavy", new object[] { options });
+}
 
         public void Dispose() {
-            bridge?.DisposeAsync();
-        }
-    }
-
-    public class WeavyReference : ExtendableJSObjectReference {
-        public WeavyReference(IJSObjectReference weavy) : base(weavy) { }
-
-        async public ValueTask<SpaceReference> Space(object spaceSelector = null) {
-            var space = await objectReference.InvokeAsync<IJSObjectReference>("space", new object[] { spaceSelector });
-            return new SpaceReference(space);
-        }
-    }
-
-    public class SpaceReference : ExtendableJSObjectReference {
-        public SpaceReference(IJSObjectReference space) : base(space) { }
-
-        async public ValueTask<AppReference> App(object appSelector = null) {
-            var app = await objectReference.InvokeAsync<IJSObjectReference>("app", new object[] { appSelector });
-            return new AppReference(app);
-        }
-    }
-
-    public class AppReference : ExtendableJSObjectReference {
-        public AppReference(IJSObjectReference app) : base(app) { }
-
-        public ValueTask<IJSObjectReference> Open() {
-            return objectReference.InvokeAsync<IJSObjectReference>("open", new object[] { });
-        }
-
-        public ValueTask<IJSObjectReference> Close() {
-            return objectReference.InvokeAsync<IJSObjectReference>("close", new object[] { });
-        }
-
-        public ValueTask<IJSObjectReference> Toggle() {
-            return objectReference.InvokeAsync<IJSObjectReference>("toggle", new object[] { });
+            _bridge?.DisposeAsync();
         }
     }
 }

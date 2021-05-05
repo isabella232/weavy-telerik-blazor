@@ -7,6 +7,7 @@
   <ItemGroup>
     <PackageReference Include="jose-jwt" Version="3.1.1" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+    <PackageReference Include="System.Collections" Version="4.3.0" />
     <PackageReference Include="Telerik.UI.for.Blazor.Trial" Version="2.23.0" />
   </ItemGroup>
 

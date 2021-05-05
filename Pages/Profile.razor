@@ -4,7 +4,6 @@
 @using System.Security.Claims
 @using System.Text.RegularExpressions;
 @inject AuthenticationStateProvider AuthenticationStateProvider
-@inject WeavyJsInterop wvy
 
 <TelerikSplitter Height="100vh">
     <SplitterPanes>
@@ -17,31 +16,24 @@
             </dl>
         </SplitterPane>
         <SplitterPane>
-            <div @ref="filesContainer" style="height: 100vh;"></div>
+            <Weavy>
+                <WeavyApp SpaceKey="@spaceKey" Height="100vh" key="files" type="files" name="@appName" />
+            </Weavy>
         </SplitterPane>
     </SplitterPanes>
 </TelerikSplitter>
 
-
-
 @code {
     ClaimsPrincipal user;
-    ElementReference filesContainer;
+    string spaceKey;
+    string appName;
 
     protected override async Task OnInitializedAsync() {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         user = authState.User;
+        spaceKey = "telerik-blazor-ui-" + user.Identity.Name;
+        appName = user.Identity.Name + "'s files";
     }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender) {
-        if (firstRender) {
-            await wvy.Init();
-            var weavy = await wvy.Weavy(new { jwt = user.FindFirst("jwt").Value });
-            var space = await weavy.Space(new { key = "telerik-blazor-ui-" + user.Identity.Name });
-            var app = await space.App(new { key = "files", name = user.Identity.Name + "'s files", type = "files", container = filesContainer });
-        }
-    }
-
 
     private string Ellipsis(string input, int length) {
         if (string.IsNullOrEmpty(input)) {

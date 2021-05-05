@@ -17,7 +17,7 @@
         </li>
         <li class="nav-item px-3">
             <NavLink class="nav-link" href="chat">
-                <span class="oi oi-chat" aria-hidden="true"></span> Chat
+                <span class="oi oi-chat" aria-hidden="true"></span> Chat <span class="badge bg-danger ml-2">@conversations</span>
             </NavLink>
         </li>
         <li class="nav-item px-3">
@@ -32,7 +32,7 @@
         </li>
         <li class="nav-item px-3">
             <NavLink class="nav-link" href="notifications">
-                <span class="oi oi-bell" aria-hidden="true"></span> Notifications <span class="badge bg-danger ml-2">@badge?.notifications</span>
+                <span class="oi oi-bell" aria-hidden="true"></span> Notifications <span class="badge bg-danger ml-2">@notifications</span>
             </NavLink>
         </li>
         <li class="nav-item px-3">
@@ -45,11 +45,16 @@
 
 @code {
     private bool collapseNavMenu = true;
-    private Badge badge;
+
+    private int? conversations;
+    private int? notifications;
 
     // invoked when the component is initialized after having received its initial parameters
     protected override async Task OnInitializedAsync() {
-        badge = await ChatService.GetBadgeAsync();
+        var badge = await ChatService.GetBadgeAsync();
+        conversations = (badge?.conversations ?? 0) > 0 ? badge.conversations : null;
+        notifications = (badge?.notifications ?? 0) > 0 ? badge.notifications : null;
+
     }
 
     private string NavMenuCssClass => collapseNavMenu ? "collapse" : null;
